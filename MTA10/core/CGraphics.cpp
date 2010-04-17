@@ -586,6 +586,9 @@ void CGraphics::DrawRectQueued ( float fX, float fY,
 
 bool CGraphics::DrawTextureQueued ( float fX, float fY,
                                  float fWidth, float fHeight,
+                                 float fU, float fV,
+                                 float fSizeU, float fSizeV,
+                                 bool bRelativeUV,
                                  const string& strFilename,
                                  float fRotation,
                                  float fRotCenOffX,
@@ -600,6 +603,11 @@ bool CGraphics::DrawTextureQueued ( float fX, float fY,
     Item.Texture.fY = fY;
     Item.Texture.fWidth = fWidth;
     Item.Texture.fHeight = fHeight;
+    Item.Texture.fU = fU;
+    Item.Texture.fV = fV;
+    Item.Texture.fSizeU = fSizeU;
+    Item.Texture.fSizeV = fSizeV;
+    Item.Texture.bRelativeUV = bRelativeUV;
     Item.Texture.texture = CacheTexture( strFilename );
     Item.Texture.fRotation = fRotation;
     Item.Texture.fRotCenOffX = fRotCenOffX;
@@ -892,7 +900,11 @@ void CGraphics::DrawQueue ( std::vector < sDrawQueueItem >& Queue )
             {
                 bSpriteMode = IsDrawQueueItemSprite ( *iter );
                 if ( bSpriteMode )
+                {
                     m_pDXSprite->Begin ( D3DXSPRITE_ALPHABLEND );
+                    m_pDevice->SetSamplerState ( 0, D3DSAMP_ADDRESSU, D3DTADDRESS_WRAP );
+                    m_pDevice->SetSamplerState ( 0, D3DSAMP_ADDRESSV, D3DTADDRESS_WRAP );
+                }
                 else
                     m_pDXSprite->End ();
             }
@@ -996,12 +1008,19 @@ void CGraphics::DrawQueueItem ( const sDrawQueueItem& Item )
             float texureHeight  = texureDesc.Height;
             float fRotationRad  = Item.Texture.fRotation * (6.2832f/360.f);
             D3DXMATRIX matrix;
-            D3DXVECTOR2 scaling         ( Item.Texture.fWidth / texureWidth, Item.Texture.fHeight / texureHeight );
+            RECT cutImagePos;
+            cutImagePos.left    = ( Item.Texture.fU ) * ( Item.Texture.bRelativeUV ? texureWidth : 1 );
+            cutImagePos.top     = ( Item.Texture.fV ) * ( Item.Texture.bRelativeUV ? texureHeight : 1 );
+            cutImagePos.right   = ( Item.Texture.fU + Item.Texture.fSizeU ) * ( Item.Texture.bRelativeUV ? texureWidth : 1 );
+            cutImagePos.bottom  = ( Item.Texture.fV + Item.Texture.fSizeV ) * ( Item.Texture.bRelativeUV ? texureHeight : 1 );
+            float fCutWidth  = cutImagePos.right - cutImagePos.left;
+            float fCutHeight = cutImagePos.bottom - cutImagePos.top;
+            D3DXVECTOR2 scaling         ( Item.Texture.fWidth / fCutWidth, Item.Texture.fHeight / fCutHeight );
             D3DXVECTOR2 rotationCenter  ( Item.Texture.fWidth * 0.5f + Item.Texture.fRotCenOffX, Item.Texture.fHeight * 0.5f + Item.Texture.fRotCenOffY );
             D3DXVECTOR2 position        ( Item.Texture.fX, Item.Texture.fY );
             D3DXMatrixTransformation2D  ( &matrix, NULL, 0.0f, &scaling, &rotationCenter, fRotationRad, &position );
             m_pDXSprite->SetTransform ( &matrix );
-            m_pDXSprite->Draw ( Item.Texture.texture, NULL, NULL, NULL, Item.Texture.ulColor );
+            m_pDXSprite->Draw ( Item.Texture.texture, &cutImagePos, NULL, NULL, Item.Texture.ulColor );
             break;
         }
         // Circle type?
