@@ -5,6 +5,7 @@
 *  FILE:        mods/deathmatch/logic/luadefs/CLuaHandlingDefs.h
 *  PURPOSE:     Lua vehicle handling definitions class
 *  DEVELOPERS:  Christian Myhre Lundheim <>
+*               Florian Busse <flobu@gmx.net>
 *
 *  Multi Theft Auto is available from http://www.multitheftauto.com/
 *
